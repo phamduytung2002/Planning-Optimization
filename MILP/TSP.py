@@ -2,6 +2,8 @@ from ortools.linear_solver import pywraplp
 import numpy as np
 from itertools import chain, combinations
 
+# 0-based index
+
 
 def powerset(iterable):
     "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
@@ -36,13 +38,21 @@ for i in range(n):
 # no loop
 for i in range(n):
     solver.Add(x[i, i] == 0)
-# subtour elimination
-for subset in powerset(range(n)):
-    if len(subset) > 1 and len(subset) < n:
-        solver.Add(
-            solver.Sum([x[i, j] for i in subset for j in subset]) <= len(subset) - 1
-        )
 
+# # subtour elimination 1
+# for subset in powerset(range(n)):
+#     if len(subset) > 1 and len(subset) < n:
+#         solver.Add(
+#             solver.Sum([x[i, j] for i in subset for j in subset]) <= len(subset) - 1
+#        )
+
+# subtour elimination 2 - MTZ method
+u = {}
+for i in range(n):
+    u[i] = solver.IntVar(1, n, f"u[{i}]")
+for i in range(n):
+    for j in range(1, n):
+        solver.Add(u[i] - u[j] + n * x[i, j] <= n - 1)
 
 # objective
 cost = 0
@@ -56,12 +66,12 @@ status = solver.Solve()
 if status == pywraplp.Solver.OPTIMAL:
     # print('Objective value =', solver.Objective().Value())
     print(n)
-    answer = [1]
+    answer = [0]
     i = 0
     while True:
         for j in range(n):
             if x[i, j].solution_value() == 1:
-                answer.append(j + 1)
+                answer.append(j)
                 i = j
                 break
         if j == 0:
